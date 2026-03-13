@@ -1,0 +1,100 @@
+import openai
+from tkinter import ttk
+import random
+from ttkthemes import ThemedTk
+
+window = ThemedTk(theme="black")
+window.configure(themebg="black")
+window.geometry("600x600")
+window.title('AI football quiz')
+window.resizable(False,False)
+score = 0
+all = 0
+
+
+client = openai.OpenAI(api_key= "YOUR API KEY GOES HERE")
+
+possible = ["Absoulte Cinema. Keep playing!","Noice.","Wait. Are you a professional?","W."]
+
+def generate_question():
+    global lbl,answer
+    response = client.chat.completions.create(
+        model = 'gpt-3.5-turbo',
+        messages = [
+            {"role": "system", "content": "Generate a simple yes/no question in English about European Football teams with a clear correct answer. " "Return the format: 'Question: <question> | Answer : yes/no' "},
+
+            {"role": "user", "content": "Generate a simple yes/no question."}
+        ]
+    )
+    #print(response)        <-- no need to use that
+    result = response.choices[0].message.content.strip()
+    #print(result)
+    question_part, answer_part = result.split(" | ")
+    #print(question_part)
+    #print(answer_part)
+    question = question_part.replace("Question:", "").strip()
+    answer = answer_part.replace("Answer:", "").strip().lower()
+    print(question)
+    print(answer)
+    lbl.config(text = question)
+
+def check(uanswer):
+    global lblscore,lbl2,score,all,progress,yesbtn,nobtn,restartbtn
+    if answer == uanswer:
+        score+=1
+        all += 1
+        progress["value"] += 1
+        lblscore.config(text='Score: ' + str(score)+ " / "+ str(all))
+        random.shuffle(possible)
+        lbl2.config(text=possible[0])
+    else:
+        all += 1
+        lblscore.config(text='Score: ' + str(score) + " / " + str(all))
+        lbl2.config(text="")
+    if all == 5:
+        score = 0
+        all = 0
+        progress["value"] = 0
+        lblscore.config(text='Restart!')
+        yesbtn.pack_forget()
+        nobtn.pack_forget()
+        restartbtn.pack()
+        return
+
+    generate_question()
+
+def restart():
+    restartbtn.pack_forget()
+    generate_question()
+    yesbtn.pack(side = "left")
+    nobtn.pack()
+    lblscore.config(text='Score: ' + str(score) + " / " + str(all))
+
+
+
+lbl = ttk.Label(window, text = "", font = ("Ferdoka One",10))
+lbl.pack(pady = 50)
+
+framebuttons = ttk.Frame()
+framebuttons.pack()
+
+yesbtn = ttk.Button(framebuttons, text = "YES",command = lambda:check("yes"))
+yesbtn.pack(side='left')
+nobtn = ttk.Button(framebuttons, text = "NO",command = lambda:check("no"))
+nobtn.pack()  # <<-- no need to change the other button to side = "right"
+restartbtn = ttk.Button(framebuttons, text = "RESTART", command = restart)
+
+lbl2 = ttk.Label(window, text = "", font = ("Ferdoka One",10))
+lbl2.pack(pady = 50)
+
+lblscore = ttk.Label(window, text = "", font = ("Ferdoka One",10))
+lblscore.pack(pady = 50)
+
+progress = ttk.Progressbar(window, orient="horizontal", length=200, mode="determinate")
+progress.pack(pady=10)
+
+progress["value"] = 0
+progress["maximum"] = 5
+
+generate_question()
+window.mainloop()
